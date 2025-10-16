@@ -1,0 +1,14 @@
+README.md
+setup.py
+models/__init__.py
+models/base_model.py
+models/deepseek_model.py
+models/model_manager.py
+models/ollama_model.py
+models/openai_model.py
+shantong_ai.egg-info/PKG-INFO
+shantong_ai.egg-info/SOURCES.txt
+shantong_ai.egg-info/dependency_links.txt
+shantong_ai.egg-info/top_level.txt
+test/__init__.py
+test/example_usage.py

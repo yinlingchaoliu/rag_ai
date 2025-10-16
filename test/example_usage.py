@@ -6,7 +6,7 @@
 
 from models.model_manager import ModelManager
 
-from models import models
+import models
 
 def example_basic_usage():
     """
@@ -111,7 +111,6 @@ def example_custom_model_params():
 
 if __name__ == "__main__":
     # 导入shantong_ai.models模块
-    import shantong_ai.models as models
     # 创建模型管理器
     manager = ModelManager()
     
