@@ -278,7 +278,7 @@ class RAGManager:
                 vector_store_params = {}
             
             # 创建新的向量存储
-            new_vector_store = vector_store_factory.create_store(
+            new_vector_store = vector_store_factory.create_vector_store(
                 vector_store_type,
                 embedding_model=self.embedding_model,
                 **vector_store_params
@@ -301,26 +301,8 @@ class RAGManager:
         Returns:
             文档加载器实例
         """
-        # 检查是否是URL
-        if path.startswith(('http://', 'https://')):
-            # 检查是否是飞书文档URL
-            if 'feishu.cn/docs' in path or 'feishu.cn/file' in path:
-                return loader_factory.get_loader('feishu')
-            else:
-                return loader_factory.get_loader('url')
-        
-        # 根据文件扩展名选择加载器
-        _, ext = os.path.splitext(path.lower())
-        if ext in ['.pdf']:
-            return loader_factory.get_loader('pdf')
-        elif ext in ['.docx']:
-            return loader_factory.get_loader('word')
-        elif ext in ['.xlsx', '.xls']:
-            return loader_factory.get_loader('excel')
-        elif ext in ['.txt', '.md', '.csv', '.json', '.html', '.xml', '.yml', '.yaml']:
-            return loader_factory.get_loader('text')
-        
-        return None
+        # 使用loader_factory.create_loader创建适合该路径的加载器实例
+        return loader_factory.create_loader(path)
 
 
 # 创建一个全局的RAG管理器实例（可选）
