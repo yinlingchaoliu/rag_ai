@@ -181,6 +181,20 @@ python example_usage.py
 python example_rag_usage.py
 ```
 
+### 添加新的向量存储
+
+1. 在`vector_stores`目录下创建新的存储文件，例如`my_store.py`
+2. 实现`BaseVectorStore`接口并注册到工厂：
+
+```python
+from vector_stores.base import BaseVectorStore, vector_store_factory
+
+@vector_store_factory.register("my_store")
+class MyVectorStore(BaseVectorStore):
+    # 实现所有必要方法
+    pass
+```
+
 ## 扩展开发
 
 ### 添加新的文档加载器
@@ -210,12 +224,13 @@ class MyFileLoader(BaseDocumentLoader):
 ### 添加新的向量存储
 
 1. 在`vector_stores`目录下创建新的存储文件，例如`my_store.py`
-2. 实现`BaseVectorStore`接口：
+2. 实现`BaseVectorStore`接口并使用装饰器注册到工厂：
 
 ```python
-from vector_stores.base import BaseVectorStore
+from vector_stores.base import BaseVectorStore, vector_store_factory
 from document_loaders.base import Document
 
+@vector_store_factory.register("my_store")
 class MyVectorStore(BaseVectorStore):
     # 实现所有必要的方法
     def add_documents(self, documents):
@@ -229,7 +244,37 @@ class MyVectorStore(BaseVectorStore):
     # 实现其他必要方法...
 ```
 
-向量存储会自动注册到工厂中，无需额外配置。
+使用装饰器注册后，可通过工厂直接创建：`vector_store_factory.create("my_store", **params)`
+
+### 添加新的嵌入模型
+
+1. 在`embedding`目录下创建新的模型文件，例如`my_embedding.py`
+2. 实现`BaseEmbeddingModel`接口并注册到工厂：
+
+```python
+from embedding.base import BaseEmbeddingModel, embedding_model_factory
+
+@embedding_model_factory.register("my_embedding")
+class MyEmbeddingModel(BaseEmbeddingModel):
+    def __init__(self, **kwargs):
+        # 初始化模型配置
+        pass
+    
+    def embed(self, texts):
+        # 实现批量文本嵌入
+        return embeddings
+    
+    def embed_query(self, query):
+        # 实现查询文本嵌入
+        return embedding
+    
+    @property
+    def get_name(self):
+        # 返回模型名称
+        return "my_embedding"
+```
+
+使用方法：`embedding_model = embedding_model_factory.create("my_embedding", **params)`
 
 ### 添加新的模型
 
@@ -247,6 +292,8 @@ class MyVectorStore(BaseVectorStore):
 4. **内存使用**：处理大量文档时，请注意内存使用情况
 5. **性能优化**：对于大规模知识库，可以考虑使用GPU加速的FAISS或其他更高效的向量存储
 6. **模型参数**：参数如 `temperature` 和 `max_tokens` 可以根据需要调整，以获得不同的生成效果
+7. **嵌入模型**：使用Ollama嵌入模型时，请确保Ollama服务正常运行且已拉取nomic-embed-text:latest模型
+8. **向后兼容**：新的embedding模块和改进的向量存储功能与原有系统完全兼容，可无缝集成到现有项目中
 
 ## 故障排除
 

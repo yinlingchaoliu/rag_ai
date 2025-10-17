@@ -1,6 +1,6 @@
 import os
 import importlib
-from .base import BaseVectorStore, VectorStoreFactory
+from .base import BaseVectorStore, VectorStoreFactory, VectorDatabaseManager, vector_db_manager
 
 # 创建全局向量存储工厂实例
 vector_store_factory = VectorStoreFactory()
@@ -44,4 +44,4 @@ def _register_vector_stores():
 _register_vector_stores()
 
 # 导出公共接口
-__all__ = ['BaseVectorStore', 'VectorStoreFactory', 'vector_store_factory']
+__all__ = ['BaseVectorStore', 'VectorStoreFactory', 'vector_store_factory', 'VectorDatabaseManager', 'vector_db_manager']

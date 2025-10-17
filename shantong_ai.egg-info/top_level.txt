@@ -1,2 +1,5 @@
+document_loaders
+embedding
 models
-test
+rag
+vector_stores
