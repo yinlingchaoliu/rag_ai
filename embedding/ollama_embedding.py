@@ -9,7 +9,7 @@ class OllamaEmbedding(BaseEmbeddingModel):
     基于Ollama的嵌入模型实现
     """
     
-    def __init__(self, model_name: str = "nomic-embed-text:latest", base_url: str = "http://localhost:11434"):
+    def __init__(self, model_name: str = "nomic-embed-text:latest", base_url: str = "http://127.0.0.1:11434"):
         """
         初始化Ollama嵌入模型
         
@@ -18,6 +18,7 @@ class OllamaEmbedding(BaseEmbeddingModel):
             base_url: Ollama API基础URL
         """
         self.model_name = model_name
+        self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
         self.base_url = base_url.rstrip('/')
         self.embed_endpoint = f"{self.base_url}/api/embeddings"
     

@@ -24,7 +24,7 @@ class OllamaModel(BaseModel):
         
         # 使用传入的参数或环境变量中的配置
         self.model_name = model_name or os.getenv("OLLAMA_MODEL", "deepseek-r1:1.5b")
-        self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
         
         # 初始化LangChain的ChatOllama实例
         self.chat_model = ChatOllama(

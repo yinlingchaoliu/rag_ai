@@ -1,6 +1,6 @@
-# RAG 知识库系统
+# X公司知识库RAG系统
 
-一个可扩展的检索增强生成（RAG）知识库系统，支持多种文档格式加载、向量存储和知识库问答功能。
+一个基于检索增强生成(RAG)技术的智能知识库系统，专为X公司设计，支持多种文档格式导入、高效向量检索和智能问答功能。系统采用FAISS向量数据库进行高效相似性搜索，结合Ollama本地部署的大语言模型或DeepSeek API，实现了完整的文档处理、向量存储和问答流程。
 
 ## 项目架构
 
@@ -15,6 +15,8 @@
 
 ```
 shantong_ai/
+├── x_rag_app.py          # 主应用入口脚本（新增）
+├── config.py             # 系统配置文件（新增）
 ├── document_loaders/     # 文档加载器模块
 │   ├── __init__.py      # 加载器工厂和自动注册
 │   ├── base.py          # 加载器基类定义
@@ -29,7 +31,8 @@ shantong_ai/
 │   ├── base.py          # 存储基类定义
 │   └── faiss_store.py   # FAISS向量存储实现
 ├── rag/                 # RAG核心模块
-│   └── __init__.py      # RAG管理器实现
+│   ├── __init__.py      # RAG管理器实现
+│   └── rag_system.py    # RAG系统核心实现（新增）
 ├── models/              # 模型管理模块
 │   ├── __init__.py
 │   ├── base_model.py
@@ -37,12 +40,18 @@ shantong_ai/
 │   ├── openai_model.py
 │   ├── deepseek_model.py
 │   └── model_manager.py
-├── asset/               # 文档资源目录
+├── embedding/           # 嵌入模型模块
+│   ├── __init__.py
+│   ├── base.py
+│   └── ollama_embedding.py
+├── db/                  # 数据存储目录（新增）
+│   └── vector_store/     # FAISS向量存储文件
 ├── example_usage.py     # 模型使用示例
 ├── example_rag_usage.py # RAG使用示例
 ├── requirements.txt     # 项目依赖
 ├── .env                 # 环境变量配置
-└── .env.example         # 环境变量配置示例
+├── .env.example         # 环境变量配置示例
+└── README.md            # 项目说明文档
 ```
 
 ## 核心功能
@@ -56,50 +65,151 @@ shantong_ai/
 - **URL链接**：支持从网页获取内容
 - **飞书文档**：支持从飞书获取文档内容
 
-### 2. 向量存储管理
+### 2. 高效向量检索
 
-- **FAISS存储**：使用FAISS进行高效的向量搜索
-- **持久化**：支持向量存储的保存和加载
-- **CRUD操作**：支持文档的增删改查操作
-- **源管理**：支持按文件名或URL进行文档管理
+- **FAISS存储**：使用FAISS进行高性能相似性搜索
+- **持久化存储**：向量数据库自动持久化到本地文件，支持增量更新
+- **源过滤**：支持按源文件路径过滤文档
+- **相似度阈值**：可配置的相似度过滤阈值
 
-### 3. 模型管理
+### 3. 智能问答
 
-- **多种模型支持**：Ollama本地模型、OpenAI API、DeepSeek API
-- **统一抽象接口**：所有模型实现相同的接口，便于扩展和替换
-- **模型管理器**：集中管理多个模型实例，支持动态切换
+- **Ollama本地模型**：支持本地部署的大语言模型
+- **DeepSeek API**（可选）：支持云端大语言模型服务
+- **上下文构建**：智能构建问答上下文，提高回答质量
+- **源引用**：支持在回答中包含引用来源信息
 
-### 4. RAG功能
+### 4. 文档管理
 
-- **文档加载**：支持加载单个文件或目录下的所有文件
-- **知识库查询**：基于检索到的相关文档生成回答
-- **源引用**：在回答中包含引用来源
-- **自定义配置**：支持配置向量存储和模型参数
+- **批量加载**：支持批量导入多个文件或整个目录
+- **递归处理**：支持递归处理子目录中的文档
+- **源管理**：支持查看、删除特定源的文档
+- **清空功能**：支持清空整个知识库
 
 ## 安装和配置
 
-### 1. 创建Python环境
+### 1. 创建独立Python环境
 
 ```bash
-# 使用conda创建虚拟环境
-conda create -n rag_env python=3.9
-conda activate rag_env
+# 创建并激活conda环境
+conda create -n rag_system python=3.12
+conda activate rag_system
 
-# 或者使用virtualenv
-python -m venv rag_env
-source rag_env/bin/activate  # Linux/Mac
-rag_env\Scripts\activate  # Windows
+# 或使用virtualenv
+virtualenv rag_system
+source rag_system/bin/activate  # Mac/Linux
+rag_system\Scripts\activate    # Windows
 ```
 
 ### 2. 安装依赖
 
 ```bash
-# 安装基本依赖
-pip install faiss-cpu numpy pandas openpyxl python-docx requests beautifulsoup4 tiktoken PyPDF2
+pip install -r requirements.txt
+```
 
-# 如果使用GPU版本的FAISS
+### 3. 安装和配置Ollama（推荐）
+
+1. 从 [Ollama官方网站](https://ollama.ai/) 下载并安装Ollama
+2. 拉取所需的模型：
+   ```bash
+   ollama pull llama3.1:8b-instant
+   ```
+3. 确保Ollama服务正在运行（默认地址：http://localhost:11434）
+
+### 4. 配置系统
+
+系统通过`config.py`文件进行配置，主要配置项包括：
+
+- **向量存储配置**：FAISS存储路径和文件名
+- **嵌入模型配置**：模型类型、名称、维度和API地址
+- **LLM配置**：模型类型、名称、温度和最大token数
+- **RAG系统配置**：搜索参数、相似度阈值等
+
+所有配置项都可以通过环境变量覆盖，格式为配置项的大写形式。例如：
+
+```bash
+export LLM_MODEL_NAME="llama3.1:70b"
+export RAG_SEARCH_TOP_K="10"
+python x_rag_app.py
+```
+
+## 使用方法
+
+### 1. 加载文档
+
+```bash
+# 加载单个文档
+python x_rag_app.py load /path/to/your/document.pdf
+
+# 加载多个文档
+python x_rag_app.py load /path/to/doc1.pdf /path/to/doc2.docx
+
+# 加载目录中的所有文档
+python x_rag_app.py load /path/to/documents/
+
+# 递归加载目录及其子目录中的文档
+python x_rag_app.py load /path/to/documents/ --recursive
+```
+
+### 2. 查询知识库
+
+```bash
+# 单次查询
+python x_rag_app.py query "公司的核心业务是什么？"
+
+# 查询并显示源文档信息
+python x_rag_app.py query "公司的核心业务是什么？" --show-sources
+
+# 自定义返回的相关文档数量
+python x_rag_app.py query "公司的核心业务是什么？" --top-k 3
+
+# 交互式查询模式
+python x_rag_app.py
+```
+
+### 3. 管理文档源
+
+```bash
+# 列出所有文档源
+python x_rag_app.py list-sources
+
+# 删除指定文档源
+python x_rag_app.py delete-source /path/to/document.pdf
+
+# 清空知识库
+python x_rag_app.py clear
+```
 # pip install faiss-gpu
 ```
+
+## 注意事项
+
+1. **Ollama服务**：确保Ollama服务正在运行，默认地址为http://localhost:11434
+2. **依赖安装**：如果缺少特定文档格式的加载器，程序会提示缺少相应的依赖包
+3. **向量存储**：首次运行会自动创建向量存储目录，后续运行会加载已有数据
+4. **性能优化**：对于大量文档，可以考虑调整`DEFAULT_CHUNK_SIZE`和`DEFAULT_CHUNK_OVERLAP`参数
+5. **环境变量**：敏感信息（如API密钥）建议通过环境变量设置，不要硬编码在配置文件中
+
+## 故障排除
+
+### 常见问题
+
+1. **Ollama连接失败**：检查Ollama服务是否运行，地址是否正确
+2. **文档加载失败**：确保安装了相应格式的处理依赖
+3. **内存不足**：对于大型知识库，考虑增加系统内存或分批处理文档
+4. **回答质量不佳**：调整`RAG_SEARCH_TOP_K`参数或切换到更大的模型
+
+### 日志
+
+系统日志默认输出到控制台，可通过修改`LOG_FILE`配置项将日志保存到文件。
+
+## 扩展建议
+
+1. **添加更多文档加载器**：支持更多格式如HTML、CSV等
+2. **实现查询扩展**：提高低质量查询的检索效果
+3. **添加缓存机制**：缓存热门查询的结果，提高响应速度
+4. **添加文档摘要**：为长文档生成摘要，便于快速浏览
+5. **实现Web界面**：提供图形化操作界面，提升用户体验
 
 ### 3. 配置环境变量
 
