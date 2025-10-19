@@ -14,7 +14,7 @@ from vector_stores import vector_store_factory
 import logging
 
 # 导入配置
-from config import (
+from config.constants import (
     VECTOR_STORE_DIR,
     EMBEDDING_MODEL_TYPE,
     EMBEDDING_MODEL_NAME,

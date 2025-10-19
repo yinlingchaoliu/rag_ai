@@ -1,15 +1,124 @@
 # X公司知识库RAG系统
 
-一个基于检索增强生成(RAG)技术的智能知识库系统，专为X公司设计，支持多种文档格式导入、高效向量检索和智能问答功能。系统采用FAISS向量数据库进行高效相似性搜索，结合Ollama本地部署的大语言模型或DeepSeek API，实现了完整的文档处理、向量存储和问答流程。
+## 项目简介
 
-## 项目架构
+X公司知识库RAG系统是一个基于检索增强生成技术的智能问答系统，能够从企业知识库中检索相关信息并生成准确的回答。
 
-项目采用模块化设计，具有良好的扩展性和可维护性。主要包括以下几个核心模块：
+## 主要功能
 
-1. **文档加载器（document_loaders）**：负责从不同来源加载文档并进行预处理
-2. **向量存储（vector_stores）**：管理向量的存储、检索和更新
-3. **RAG管理器（rag）**：集成文档加载和向量存储，提供完整的RAG功能
-4. **模型管理（models）**：管理AI模型的调用
+1. **文档管理**：支持多种格式文档的导入、解析和分块
+2. **向量存储**：使用FAISS实现高效的向量检索
+3. **智能问答**：基于检索到的文档生成准确回答
+4. **统一的配置管理系统**：支持YAML配置和环境变量覆盖，使用Pydantic进行数据验证
+
+## 安装配置
+
+### 环境要求
+
+- Python 3.8+
+- pip
+
+### 依赖安装
+
+```bash
+pip install -r requirements.txt
+```
+
+### 配置说明
+
+项目采用分层配置策略，使用ConfigManager统一管理配置，配置项分为以下几类：
+
+1. **LLM加载参数**：模型类型、模型名称、基础URL等
+2. **Embedding模型参数**：模型类型、模型名称、维度等
+3. **FAISS数据库参数**：向量存储目录、索引文件名等
+4. **RAG系统参数**：搜索参数、阈值设置等
+5. **文档处理参数**：分块大小、重叠大小等
+6. **日志参数**：日志级别、日志文件路径等
+
+配置文件位于 `config/default_config.yml`，敏感信息通过环境变量在 `.env` 文件中配置。
+
+## 配置管理系统
+
+### ConfigManager类
+
+ConfigManager负责从YAML文件和环境变量加载配置，并提供类型安全的访问方式：
+
+- 支持从`config/default_config.yml`加载默认配置
+- 支持通过环境变量覆盖配置
+- 支持使用`${ENV_VAR}`格式在YAML中引用环境变量
+- 使用Pydantic实体类进行数据验证和类型提示
+- 保持向后兼容性，原有配置变量依然可用
+
+### 配置实体类
+
+使用Pydantic定义了以下配置实体类：
+
+- `LLMConfig`：管理LLM加载参数
+- `EmbeddingConfig`：管理嵌入模型参数
+- `FAISSConfig`：管理FAISS数据库参数
+- `RAGConfig`：管理RAG系统参数
+- `DocumentConfig`：管理文档处理参数
+- `LoggingConfig`：管理日志参数
+- `AppConfig`：包含所有配置的完整实体类
+
+## 使用方法
+
+### 初始化配置
+
+系统启动时会自动加载配置：
+
+```python
+from config.config_manager import config_manager
+
+# 获取分类配置（返回Pydantic实体类）
+llm_config = config_manager.get_llm_config()
+embedding_config = config_manager.get_embedding_config()
+faiss_config = config_manager.get_faiss_config()
+
+# 使用配置（类型安全）
+model_type = llm_config.model_type
+model_name = llm_config.model_name
+
+# 或者使用点号语法获取配置项
+chunk_size = config_manager.get("document.chunk_size")
+```
+
+### 更新配置
+
+```python
+# 更新配置
+config_manager.update_config({
+    "llm": {
+        "temperature": 0.3
+    }
+})
+
+# 获取更新后的配置
+updated_temperature = config_manager.get_llm_config().temperature
+```
+
+## 主要模块
+
+### config/ 配置管理模块
+
+- `__init__.py`: 配置管理模块初始化
+- `config_manager.py`: ConfigManager类实现
+- `config_entities.py`: Pydantic配置实体类定义
+- `default_config.yml`: 默认配置文件
+
+## 代码变更说明
+
+### 新增文件
+
+- `config/__init__.py`: 配置管理模块初始化
+- `config/config_manager.py`: ConfigManager类实现
+- `config/config_entities.py`: Pydantic配置实体类定义
+- `config/default_config.yml`: 默认配置文件
+- `test/test_config_manager.py`: 配置管理器测试
+
+### 修改文件
+
+- `config.py`: 使用ConfigManager替换原有配置方式，保持向后兼容
 
 ## 项目结构
 

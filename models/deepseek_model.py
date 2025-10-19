@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from .base_model import BaseModel
-
+from config.constants import DEEPSEEK_API_KEY, DEEPSEEK_API_BASE_URL
 
 class DeepSeekModel(BaseModel):
     """
@@ -22,8 +22,8 @@ class DeepSeekModel(BaseModel):
         load_dotenv()
         
         # 获取API密钥和基础URL
-        self.api_key = os.getenv("DEEPSEEK_API_KEY")
-        self.base_url = os.getenv("DEEPSEEK_API_BASE_URL", "https://api.deepseek.com")
+        self.api_key = DEEPSEEK_API_KEY
+        self.base_url = DEEPSEEK_API_BASE_URL
         
         if not self.api_key:
             raise ValueError("未设置DeepSeek API密钥，请在.env文件中配置DEEPSEEK_API_KEY")

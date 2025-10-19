@@ -1,0 +1,44 @@
+# 默认配置文件
+# 支持环境变量引用：${ENV_VAR_NAME}
+
+# LLM模型配置
+llm:
+  model_type: "ollama"  # 可选: ollama, deepseek
+  model_name: "qwen2:1.5b"  # 模型名称
+  base_url: "http://127.0.0.1:11434"  # API基础URL
+  temperature: 0.1  # 生成温度
+  max_tokens: 2048  # 最大生成token数
+  api_key: ""  # API密钥，强制从环境变量获取
+  deepseek_api_key: "${DEEPSEEK_API_KEY}"  # API密钥，从环境变量获取
+  deepseek_api_base_url: "${DEEPSEEK_API_BASE_URL}"  # API基础地址
+
+# 嵌入模型配置
+embedding:
+  model_type: "ollama"  # 可选: ollama
+  model_name: "nomic-embed-text:latest"  # 嵌入模型名称
+  dimension: 4096  # 嵌入维度
+  base_url: "http://127.0.0.1:11434"  # API基础URL
+
+# FAISS向量存储配置
+faiss:
+  vector_store_dir: "db/vector_store"  # 向量存储目录
+  index_file: "faiss_index.index"  # 索引文件名
+  docs_file: "faiss_index_documents.json"  # 文档文件名
+  mappings_file: "faiss_index_mappings.json"  # 映射文件名
+  embeddings_file: "faiss_index_embeddings.json"  # 嵌入向量文件名
+
+# RAG系统配置
+rag:
+  search_top_k: 5  # 搜索时返回的文档数量
+  similarity_threshold: 0.0  # 相似度阈值
+  query_expansion: false  # 是否启用查询扩展
+
+# 文档处理配置
+document:
+  chunk_size: 1000  # 文档分块大小
+  chunk_overlap: 100  # 文档块重叠大小
+
+# 日志配置
+logging:
+  log_level: "INFO"  # 日志级别: DEBUG, INFO, WARNING, ERROR
+  log_file: "logs/rag_system.log"  # 日志文件路径

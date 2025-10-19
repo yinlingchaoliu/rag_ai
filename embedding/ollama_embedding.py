@@ -3,6 +3,7 @@ import requests
 from typing import List, Dict, Any
 from .base import BaseEmbeddingModel, embedding_model_factory
 
+from config.constants import EMBEDDING_BASE_URL
 
 class OllamaEmbedding(BaseEmbeddingModel):
     """
@@ -18,7 +19,7 @@ class OllamaEmbedding(BaseEmbeddingModel):
             base_url: Ollama API基础URL
         """
         self.model_name = model_name
-        self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+        self.base_url = EMBEDDING_BASE_URL
         self.base_url = base_url.rstrip('/')
         self.embed_endpoint = f"{self.base_url}/api/embeddings"
     

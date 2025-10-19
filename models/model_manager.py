@@ -4,6 +4,7 @@ from .ollama_model import OllamaModel
 from .openai_model import OpenAIModel
 from .deepseek_model import DeepSeekModel
 import os
+from config.constants import DEFAULT_MODEL
 
 class ModelManager:
     """
@@ -66,7 +67,7 @@ class ModelManager:
         if not self.models:
             raise RuntimeError("未成功注册任何模型")
         
-        self.default_model_name = os.getenv("DEFAULT_MODEL", "ollama")
+        self.default_model_name = DEFAULT_MODEL
         
         if self.default_model_name in self.models:
             print(f"切换到默认模型 {self.default_model_name} ")

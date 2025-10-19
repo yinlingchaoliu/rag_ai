@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from langchain_community.chat_models import ChatOllama
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from .base_model import BaseModel
+from config.constants import LLM_MODEL_NAME, LLM_BASE_URL
 
 
 class OllamaModel(BaseModel):
@@ -23,8 +24,8 @@ class OllamaModel(BaseModel):
         load_dotenv()
         
         # 使用传入的参数或环境变量中的配置
-        self.model_name = model_name or os.getenv("OLLAMA_MODEL", "deepseek-r1:1.5b")
-        self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+        self.model_name = LLM_MODEL_NAME
+        self.base_url = LLM_BASE_URL
         
         # 初始化LangChain的ChatOllama实例
         self.chat_model = ChatOllama(
