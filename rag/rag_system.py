@@ -169,13 +169,14 @@ class RAGSystem:
         
         return results
     
-    def generate_answer(self, query: str, search_results: List[Dict[str, Any]]) -> str:
+    def generate_answer(self, query: str, search_results: List[Dict[str, Any]], conversation_history: str = "") -> str:
         """
-        根据查询和搜索结果生成回答
+        根据查询、搜索结果和对话历史生成回答
         
         Args:
             query: 查询文本
             search_results: 搜索结果列表
+            conversation_history: 对话历史（可选）
             
         Returns:
             生成的回答
@@ -185,21 +186,44 @@ class RAGSystem:
             context = "\n".join([f"文档片段 {i+1} (相似度: {result['score']:.4f}):\n{result['document'].content}" 
                                for i, result in enumerate(search_results)])
             
-            prompt = f"""基于以下提供的资料，回答用户的问题。请确保回答完全基于提供的资料，不要添加任何额外信息。
-            
+            # 基础提示词
+            base_prompt = f"""基于以下提供的资料，回答用户的问题。请确保回答完全基于提供的资料，不要添加任何额外信息。
+        
 资料:
 {context}
-            
+        
 问题:
 {query}
-            
+        
 回答:
 """
+            
+            # 如果有对话历史，添加到提示词中
+            if conversation_history:
+                prompt = f"""对话历史：
+{conversation_history}
+
+{base_prompt}
+
+请注意，在回答时考虑到用户的历史问题和之前的对话内容，提供连贯的回复。"""
+            else:
+                prompt = base_prompt
         else:
             # 当没有找到相关文档时
-            prompt = f"""用户的问题是: {query}
+            base_prompt = f"""用户的问题是: {query}
 
 很抱歉，我无法找到与此问题相关的信息。请尝试提供更具体的问题或使用其他关键词重新提问。"""
+            
+            # 如果有对话历史，添加到提示词中
+            if conversation_history:
+                prompt = f"""对话历史：
+{conversation_history}
+
+{base_prompt}
+
+请注意，在回答时考虑到用户的历史问题和之前的对话内容，提供连贯的回复。"""
+            else:
+                prompt = base_prompt
         
         logger.info(f"调用LLM生成回答，搜索结果数: {len(search_results)}")
         
@@ -211,7 +235,7 @@ class RAGSystem:
             logger.error(f"LLM生成失败: {str(e)}")
             return f"生成回答时出错: {str(e)}"
     
-    def query(self, query: str, k: int = None, return_sources: bool = False) -> Dict[str, Any]:
+    def query(self, query: str, k: int = None, return_sources: bool = False, conversation_history: str = "") -> Dict[str, Any]:
         """
         完整的查询流程: 搜索 -> 生成回答
         
@@ -219,6 +243,7 @@ class RAGSystem:
             query: 查询文本
             k: 返回的文档数量
             return_sources: 是否返回源文档信息
+            conversation_history: 对话历史（可选）
             
         Returns:
             查询结果字典
@@ -229,7 +254,7 @@ class RAGSystem:
         search_results = self.search(query, k)
         
         # 生成回答
-        answer = self.generate_answer(query, search_results)
+        answer = self.generate_answer(query, search_results, conversation_history)
         
         # 构建返回结果
         result = {
