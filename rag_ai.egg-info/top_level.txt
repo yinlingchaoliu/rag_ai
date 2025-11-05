@@ -1,5 +1,7 @@
+config
 document_loaders
 embedding
+loop
 models
 rag
 vector_stores

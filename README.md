@@ -45,7 +45,7 @@ X公司知识库RAG系统是一个基于检索增强生成技术的智能问答�
 ## 项目结构
 
 ```
-shantong_ai/
+rag_ai/
 ├── main.py                 # 程序主入口
 ├── server.py               # RAG服务层
 ├── webui.py                # WebUI界面实现
@@ -173,7 +173,7 @@ updated_temperature = config_manager.get_llm_config().temperature
 ## 项目结构
 
 ```
-shantong_ai/
+rag_ai/
 ├── x_rag_app.py          # 主应用入口脚本（新增）
 ├── config.py             # 系统配置文件（新增）
 ├── document_loaders/     # 文档加载器模块
@@ -258,6 +258,16 @@ conda activate rag_system
 virtualenv rag_system
 source rag_system/bin/activate  # Mac/Linux
 rag_system\Scripts\activate    # Windows
+```
+
+### 自动激活指定 conda环境 
+```shell
+# 自动激活 .conda-env 文件中指定的conda环境
+FILE=./.conda-env
+if [[ -f "$FILE" ]]; then
+    CONDA_ENV=$(<$FILE)
+    conda activate $CONDA_ENV
+fi
 ```
 
 ### 2. 安装依赖

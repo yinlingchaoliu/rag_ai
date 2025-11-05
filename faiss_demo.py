@@ -9,12 +9,15 @@ RAG系统演示脚本
 3. 将向量存储到FAISS向量数据库中
 4. 执行向量搜索以检索相关文档
 5. 展示文档源管理功能
+
+包含异步优化版本，用于处理大型文档如三国演义.txt
 """
 
 import os
 import sys
 import argparse
-from typing import List, Dict, Any
+import asyncio
+from typing import List, Dict, Any, Optional
 
 # 导入我们的自定义模块
 from document_loaders.base import Document
@@ -23,6 +26,9 @@ from document_loaders.text_loader import TextFileLoader
 from document_loaders.word_loader import WordFileLoader
 from vector_stores import vector_store_factory, VectorDatabaseManager, vector_db_manager
 from embedding import embedding_model_factory, BaseEmbeddingModel
+
+# 导入异步工具
+from loop.async_utils import create_batch_optimizer, optimize_vector_store
 
 
 class RAGDemo:
@@ -56,9 +62,23 @@ class RAGDemo:
                 index_name="faiss_index"
             )
             print(f"成功创建FAISS向量存储")
+            
+            # 初始化批处理优化器
+            self.batch_optimizer = create_batch_optimizer(self.vector_store)
+            
         except Exception as e:
             print(f"创建向量存储失败: {str(e)}")
             raise
+    
+    def __del__(self):
+        """析构函数，确保资源正确释放"""
+        try:
+            if hasattr(self, 'async_vector_store'):
+                self.async_vector_store.close()
+            if hasattr(self, 'async_manager'):
+                self.async_manager.close()
+        except:
+            pass
     
     def get_supported_file_extensions(self) -> List[str]:
         """获取所有支持的文件扩展名"""
@@ -113,6 +133,18 @@ class RAGDemo:
             print(f"加载文件 {file_path} 失败: {str(e)}")
             return []
     
+    async def load_document_async(self, file_path: str) -> List[Document]:
+        """
+        异步加载单个文档
+        
+        Args:
+            file_path: 文件路径
+            
+        Returns:
+            文档列表
+        """
+        return await self.async_manager.run_in_executor(self.load_document, file_path)
+    
     def load_all_documents(self) -> Dict[str, List[Document]]:
         """
         加载所有支持的文档
@@ -136,6 +168,35 @@ class RAGDemo:
         
         return all_documents
     
+    async def load_all_documents_async(self) -> Dict[str, List[Document]]:
+        """
+        异步加载所有支持的文档
+        
+        Returns:
+            文件路径到文档列表的映射
+        """
+        all_documents = {}
+        supported_files = self.find_supported_files()
+        
+        if not supported_files:
+            print(f"在 {self.asset_dir} 中没有找到支持的文件")
+            return all_documents
+        
+        print(f"找到 {len(supported_files)} 个支持的文件")
+        
+        # 创建文件加载任务
+        tasks = []
+        for file_path in supported_files:
+            tasks.append((file_path, self.load_document_async(file_path)))
+        
+        # 等待所有加载完成
+        for file_path, task in tasks:
+            documents = await task
+            if documents:
+                all_documents[file_path] = documents
+        
+        return all_documents
+    
     def store_documents(self, documents: List[Document]) -> List[str]:
         """
         将文档存储到向量数据库
@@ -154,6 +215,31 @@ class RAGDemo:
             doc_ids = self.vector_store.add_documents(documents)
             print(f"成功存储 {len(doc_ids)} 个文档")
             return doc_ids
+        except Exception as e:
+            print(f"存储文档失败: {str(e)}")
+            return []
+    
+    def store_documents_batch(self, documents: List[Document], batch_size: int = 50) -> List[str]:
+        """
+        使用批处理方式存储文档（同步实现）
+        
+        Args:
+            documents: 文档列表
+            batch_size: 批处理大小
+            
+        Returns:
+            存储的文档ID列表
+        """
+        if not documents:
+            return []
+        
+        try:
+            # 使用批处理优化器添加文档
+            return self.batch_optimizer.add_documents_batch_sync(
+                documents, 
+                batch_size=batch_size,
+                save_interval=5
+            )
         except Exception as e:
             print(f"存储文档失败: {str(e)}")
             return []
@@ -262,23 +348,49 @@ class RAGDemo:
     
     def run_demo(self):
         """
-        运行完整的演示流程
+        使用Loop优化运行完整的演示流程
+        """
+        # 使用Loop优化运行演示
+        process_with_loop(self.run_demo_async())
+    
+    async def run_demo_async(self):
+        """
+        异步运行完整的演示流程
         """
         print("=" * 60)
-        print("        RAG 系统演示        ")
+        print("        RAG 系统演示 (异步模式)        ")
         print("=" * 60)
         
-        # 1. 加载所有文档
-        print("\n1. 扫描并加载文档...")
-        all_documents = self.load_all_documents()
+        # 1. 异步加载所有文档
+        print("\n1. 扫描并异步加载文档...")
+        all_documents = await self.load_all_documents_async()
         
-        # 2. 存储文档到向量数据库
+        # 2. 异步存储文档到向量数据库
         total_documents = sum(len(docs) for docs in all_documents.values())
         if total_documents > 0:
-            print(f"\n2. 准备存储 {total_documents} 个文档...")
+            print(f"\n2. 准备异步存储 {total_documents} 个文档...")
+            
+            # 对于大型文档（如三国演义.txt），使用更大的批处理大小
+            batch_size = 100 if total_documents > 500 else 50
+            
+            # 合并所有文档以便批量处理
+            all_docs_list = []
+            file_info = []
+            
             for file_path, documents in all_documents.items():
-                print(f"\n处理文件: {os.path.basename(file_path)}")
-                self.store_documents(documents)
+                file_name = os.path.basename(file_path)
+                print(f"\n准备处理文件: {file_name} (包含 {len(documents)} 个文档块)")
+                all_docs_list.extend(documents)
+                file_info.append((file_name, len(documents)))
+            
+            # 显示文件信息摘要
+            print(f"\n文件处理摘要:")
+            for file_name, doc_count in file_info:
+                print(f"- {file_name}: {doc_count} 个文档块")
+            print(f"总计: {total_documents} 个文档块")
+            
+            # 异步批量存储所有文档
+            await self.store_documents_async(all_docs_list, batch_size=batch_size)
         else:
             print("没有文档需要存储")
         
@@ -298,7 +410,7 @@ class RAGDemo:
         
         for query in example_queries:
             print("-" * 40)
-            self.search(query, k=2)
+            await self.async_vector_store.search_async(query, k=2)
         
         print("\n" + "=" * 60)
         print("演示完成！您可以使用以下命令进行更多操作:")
@@ -307,6 +419,36 @@ class RAGDemo:
         print("- 删除源: python faiss_demo.py --delete-source '源路径'")
         print("- 重新导入: python faiss_demo.py")
         print("=" * 60)
+    
+    def process_large_file(self, file_path: str, batch_size: int = 100) -> List[str]:
+        """
+        处理大型文件（同步批处理实现）
+        
+        Args:
+            file_path: 文件路径
+            batch_size: 批处理大小
+            
+        Returns:
+            存储的文档ID列表
+        """
+        print(f"\n开始处理大型文件: {os.path.basename(file_path)}")
+        print(f"批处理大小设置为: {batch_size}")
+        
+        try:
+            # 直接加载文件
+            documents = self.load_document(file_path)
+            
+            if not documents:
+                print("未加载到任何文档")
+                return []
+            
+            print(f"成功加载 {len(documents)} 个文档块，开始使用批处理存储...")
+            
+            # 使用批处理存储文档
+            return self.store_documents_batch(documents, batch_size=batch_size)
+        except Exception as e:
+            print(f"处理文件时出错: {e}")
+            raise
 
 
 def parse_args():
@@ -318,6 +460,8 @@ def parse_args():
     parser.add_argument('--list-sources', action='store_true', help='列出所有文档源')
     parser.add_argument('--delete-source', help='删除指定源的所有文档')
     parser.add_argument('--search-k', type=int, default=3, help='搜索结果数量')
+    parser.add_argument('--large-file', help='处理单个大型文件（使用异步优化）')
+    parser.add_argument('--batch-size', type=int, default=100, help='处理大型文件时的批处理大小')
     return parser.parse_args()
 
 
@@ -339,14 +483,21 @@ def main():
         elif args.delete_source:
             # 删除指定源的文档
             demo.delete_by_source(args.delete_source)
+        elif args.large_file:
+            # 同步处理大型文件
+            print(f"使用批处理处理大型文件: {args.large_file}")
+            print(f"批处理大小设置为: {args.batch_size}")
+            demo.process_large_file(args.large_file, batch_size=args.batch_size)
         else:
-            # 运行完整演示
+            # 运行完整演示（默认使用异步模式）
             demo.run_demo()
             
     except KeyboardInterrupt:
         print("\n操作被用户中断")
     except Exception as e:
         print(f"发生错误: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return 1
     
     return 0
